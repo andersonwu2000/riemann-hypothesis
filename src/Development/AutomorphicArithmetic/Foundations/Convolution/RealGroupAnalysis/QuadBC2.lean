@@ -501,40 +501,6 @@ namespace UpperTheory.ConvolutionTheory.R2.H.T0
 
 variable {F : Type} [Field F] [NumberField F]
 
-private theorem comp_signed_mem {ι κ : Type} [Fintype ι] [Fintype κ] (e : κ ≃ ι) (ε : κ → F)
-    (hε : ∀ k, ε k * ε k = 1) {G : (κ → A F) → ℂ} (hG : G ∈ schwartzBruhatPi (K := F) (ι := κ)) :
-    (fun x : ι → A F => G fun k => rt (ε k) * x (e k)) ∈ schwartzBruhatPi (K := F) (ι := ι) := by
-  have hD : Matrix.diagonal ε * Matrix.diagonal ε = (1 : Matrix κ κ F) := by
-    rw [Matrix.diagonal_mul_diagonal, ← Matrix.diagonal_one]
-    congr 1
-    funext k
-    exact hε k
-  let M : Matrix κ ι F := (Matrix.diagonal ε).submatrix id e.symm
-  let N : Matrix ι κ F := (Matrix.diagonal ε).submatrix e.symm id
-  have hNM : N * M = 1 := by
-    have h := Matrix.submatrix_mul (Matrix.diagonal ε) (Matrix.diagonal ε) e.symm id e.symm
-      Function.bijective_id
-    rw [hD, Matrix.submatrix_one_equiv] at h
-    exact h.symm
-  have hMN : M * N = 1 := by
-    have h := Matrix.submatrix_mul (Matrix.diagonal ε) (Matrix.diagonal ε) id e.symm id
-      e.symm.bijective
-    rw [hD, Matrix.submatrix_id_id] at h
-    exact h.symm
-  have h := GroundTheory.Heights₂.Theta.comp_mulVec_mem_schwartzBruhatPi M N hNM hMN hG
-  have hx : ∀ x : ι → A F, (M.map (algebraMap F (A F)) *ᵥ x) = fun k => rt (ε k) * x (e k) := by
-    intro x
-    funext k
-    simp only [Matrix.mulVec, dotProduct, Matrix.map_apply, M, Matrix.submatrix_apply, id]
-    rw [← e.sum_comp]
-    simp only [Matrix.diagonal_apply]
-    rw [Finset.sum_eq_single k]
-    · simp
-    · intro b _ hb
-      simp [Ne.symm hb]
-    · simp
-  simpa only [hx] using h
-
 private def eS : Fin 3 ⊕ Unit ≃ Fin 4 where
   toFun := Sum.elim ![0, 2, 3] fun _ => 1
   invFun := ![.inl 0, .inr (), .inl 1, .inl 2]
@@ -552,12 +518,10 @@ private def FF (φ : V4 F → ℂ) (z : Fin 3 ⊕ Unit → A F) : ℂ := φ fun 
 
 private theorem FF_mem {φ : V4 F → ℂ} (hφ : φ ∈ schwartzBruhatPi (K := F) (ι := Fin 4)) :
     FF φ ∈ schwartzBruhatPi (K := F) (ι := Fin 3 ⊕ Unit) := by
-  have h := comp_signed_mem (F := F) eS.symm (fun _ => 1) (fun _ => by simp) hφ
-  have he : FF φ = fun x => φ fun k => rt ((fun _ => 1 : Fin 4 → F) k) * x (eS.symm k) := by
-    funext x
-    simp [FF]
-  rw [he]
-  exact h
+  unfold FF
+  simpa only [map_one, one_mul] using
+    GroundTheory.Heights₂.Theta.comp_signed_equiv_mem_schwartzBruhatPi
+      eS.symm (fun _ => (1 : F)) (fun _ => by simp) hφ
 
 private theorem hat_eq (φ : V4 F → ℂ) (x : V4 F) :
     hat φ x = GroundTheory.Heights₂.Theta.partialFourierPi (FF φ) fun k => rt (sn k) * x (eS k) := by
