@@ -145,6 +145,44 @@ theorem comp_mulVec_mem_schwartzBruhatPi (hNM : N * M = 1) (hMN : M * N = 1)
   | smul c G _ hG => exact Submodule.smul_mem _ c hG
 
 
+theorem comp_signed_equiv_mem_schwartzBruhatPi {ι κ : Type*} [Fintype ι] [Fintype κ]
+    (e : κ ≃ ι) (ε : κ → K)
+    (hε : ∀ k, ε k * ε k = 1) {G : (κ → 𝔸[K]) → ℂ} (hG : G ∈ schwartzBruhatPi (K := K) (ι := κ)) :
+    (fun x : ι → 𝔸[K] => G fun k => algebraMap K 𝔸[K] (ε k) * x (e k)) ∈
+      schwartzBruhatPi (K := K) (ι := ι) := by
+  classical
+  have hD : Matrix.diagonal ε * Matrix.diagonal ε = (1 : Matrix κ κ K) := by
+    rw [Matrix.diagonal_mul_diagonal, ← Matrix.diagonal_one]
+    congr 1
+    funext k
+    exact hε k
+  let M : Matrix κ ι K := (Matrix.diagonal ε).submatrix id e.symm
+  let N : Matrix ι κ K := (Matrix.diagonal ε).submatrix e.symm id
+  have hNM : N * M = 1 := by
+    have h := Matrix.submatrix_mul (Matrix.diagonal ε) (Matrix.diagonal ε) e.symm id e.symm
+      Function.bijective_id
+    rw [hD, Matrix.submatrix_one_equiv] at h
+    exact h.symm
+  have hMN : M * N = 1 := by
+    have h := Matrix.submatrix_mul (Matrix.diagonal ε) (Matrix.diagonal ε) id e.symm id
+      e.symm.bijective
+    rw [hD, Matrix.submatrix_id_id] at h
+    exact h.symm
+  have h := comp_mulVec_mem_schwartzBruhatPi M N hNM hMN hG
+  have hx : ∀ x : ι → 𝔸[K], (M.map (algebraMap K 𝔸[K]) *ᵥ x) =
+      fun k => algebraMap K 𝔸[K] (ε k) * x (e k) := by
+    intro x
+    funext k
+    simp only [Matrix.mulVec, dotProduct, Matrix.map_apply, M, Matrix.submatrix_apply, id]
+    rw [← e.sum_comp]
+    simp only [Matrix.diagonal_apply]
+    rw [Finset.sum_eq_single k]
+    · simp
+    · intro b _ hb
+      simp [Ne.symm hb]
+    · simp
+  simpa only [hx] using h
+
 omit [Fintype κ] [DecidableEq ι] [DecidableEq κ] in
 theorem measurePreserving_mulVec_fin {n : ℕ} (M N : Matrix (Fin n) (Fin n) K) (hNM : N * M = 1)
     (hMN : M * N = 1) :
